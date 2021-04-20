@@ -6,12 +6,10 @@ CXX = upcxx
 SOURCES += $(wildcard *.cpp)
 TARGETS := $(patsubst %.cpp, %, $(SOURCES))
 
-CXXFLAGS = -std=gnu++17 -O3
-
 all: $(TARGETS)
 
 %: %.cpp
-	$(CXX) -o $@ $^ $(CXXFLAGS)
+	$(CXX) -o $@ -g $^
 
 clean:
 	rm -fv $(TARGETS)
