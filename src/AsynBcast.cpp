@@ -46,7 +46,7 @@ struct broadcast_data {
     return res;
   }
 
-  void get_data(){
+  void wait_data(){
     while (check_ready() != true){
       get();
       usleep(100);
@@ -142,22 +142,36 @@ int main(int argc, char** argv) {
 
   upcxx::barrier();
 
+  
+  auto begin = std::chrono::high_resolution_clock::now();
+
   if (upcxx::rank_me() == 0) {
     std::vector<int> data(bcast_size, 12);
     bcast.init_root(data);  
   }
-
-  auto begin = std::chrono::high_resolution_clock::now();
   
-  bcast.wait_issue();
-  bcast.wait_put();
-
-  upcxx::barrier();
+  bcast.wait_data();
   auto end = std::chrono::high_resolution_clock::now();
   double duration = std::chrono::duration<double>(end - begin).count();
+  printf("(1) took %lf seconds until data is available for rank %d.\n", duration, upcxx::rank_me());
+  
+  bcast.wait_issue();
+  end = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration<double>(end - begin).count();
+  printf("(2) took %lf seconds until all rputs issued for rank %d.\n", duration, upcxx::rank_me());
+  
+  bcast.wait_put();
+  end = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration<double>(end - begin).count();
+  printf("(3) took %lf seconds until all work finished for rank %d.\n", duration, upcxx::rank_me());
+  
+
+  upcxx::barrier();
+  end = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration<double>(end - begin).count();
 
   if (upcxx::rank_me() == 0) {
-    printf("Broadcast took %lf seconds.\n", duration);
+    printf("(4) Broadcast took %lf seconds.\n", duration);
   }
 
   for (size_t i = 0; i < bcast_size; i++) {
