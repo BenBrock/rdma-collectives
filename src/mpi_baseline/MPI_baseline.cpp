@@ -29,6 +29,8 @@ int main(int argc, char** argv) {
 
   MPI_Barrier(MPI_COMM_WORLD);
   if (rank == 0) {
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration<double>(end - begin).count();
     printf("Broadcast took \t %lf \t seconds.\n", duration);
   }
   
