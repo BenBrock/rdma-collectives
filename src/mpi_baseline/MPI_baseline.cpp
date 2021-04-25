@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
 
   auto end = std::chrono::high_resolution_clock::now();
   double duration = std::chrono::duration<double>(end - begin).count();
-  printf("Rank %d: %lf \n", rank, duration);
+  printf("Rank \t %d: \t %lf \n", rank, duration);
 
   MPI_Barrier(MPI_COMM_WORLD);
   if (rank == 0) {

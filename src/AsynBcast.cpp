@@ -130,7 +130,29 @@ struct broadcast_data {
   std::vector<upcxx::global_ptr<int>> confirmation_ptrs;
 };
 
+int find_arg_idx(int argc, char** argv, const char* option) {
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], option) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+bool find_int_arg(int argc, char** argv, const char* option, bool default_value) {
+    int iplace = find_arg_idx(argc, argv, option);
+
+    if (iplace >= 0 && iplace < argc) {
+        return true;
+    }
+
+    return default_value;
+}
+
 int main(int argc, char** argv) {
+  
+  bool kernel = find_int_arg(argc, argv, "-k", false);
+
   upcxx::init();
 
   size_t bcast_size = 1000000;
@@ -154,12 +176,20 @@ int main(int argc, char** argv) {
   auto end = std::chrono::high_resolution_clock::now();
   double duration = std::chrono::duration<double>(end - begin).count();
   printf("(1) \t rank \t %d \t took \t %lf \t seconds until data is available\n", upcxx::rank_me(), duration);
-  
+
   bcast.wait_issue();
   end = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration<double>(end - begin).count();
   printf("(2) \t rank \t %d \t took \t %lf \t seconds until all rputs issued\n", upcxx::rank_me(), duration);
   
+  if (kernel){
+    usleep(500000);
+
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration<double>(end - begin).count();
+    printf("Rank after kernel \t %d \t %lf \t \n", upcxx::rank_me(), duration);
+  }
+
   bcast.wait_put();
   end = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration<double>(end - begin).count();
