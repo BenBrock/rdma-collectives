@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cassert>
+#include <unistd.h>
 
 #include <upcxx/upcxx.hpp>
 
@@ -102,6 +103,7 @@ int main(int argc, char** argv) {
   bcast.broadcast_MST(0, 0, upcxx::rank_n()-1);
 
   while (!bcast.check_ready()) {
+    usleep(10);
   }
 
   auto end = std::chrono::high_resolution_clock::now();

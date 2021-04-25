@@ -25,11 +25,13 @@ int main(int argc, char** argv) {
 
   auto end = std::chrono::high_resolution_clock::now();
   double duration = std::chrono::duration<double>(end - begin).count();
-
   printf("Rank %d: %lf \n", rank, duration);
 
-
-
+  MPI_Barrier(MPI_COMM_WORLD);
+  if (rank == 0) {
+    printf("Broadcast took \t %lf \t seconds.\n", duration);
+  }
+  
   for (size_t i = 0; i < bcast_size; i++) {
     assert(data[i] == 12);
   }
