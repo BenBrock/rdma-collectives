@@ -69,9 +69,16 @@ int main(int argc, char** argv) {
   auto end = std::chrono::high_resolution_clock::now();
   double duration = std::chrono::duration<double>(end - begin).count();
 
-  printf("Rank %d: %lf \n", upcxx::rank_me(), duration);
+  printf("Rank \t %d \t %lf \t \n", upcxx::rank_me(), duration);
   
+  upcxx::barrier();
 
+  end = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration<double>(end - begin).count();
+
+  if (upcxx::rank_me() == 0) {
+    printf("Broadcast took %lf seconds.\n", duration);
+  }
 
   for (size_t i = 0; i < bcast_size; i++) {
     assert(data[i] == 12);

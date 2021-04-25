@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cassert>
+#include <unistd.h>
 
 #include <upcxx/upcxx.hpp>
 
@@ -58,7 +59,7 @@ struct broadcast_data {
 int main(int argc, char** argv) {
   upcxx::init();
 
-  size_t bcast_size = 100;
+  size_t bcast_size = 1000000;
 
   // Initialize a broadcast "data structure"
   // to support broadcasts up to `bcast_size` ints.
@@ -74,10 +75,17 @@ int main(int argc, char** argv) {
   }
 
   while (!bcast.check_ready()) {
+      usleep(10);
   }
-  upcxx::barrier();
+
   auto end = std::chrono::high_resolution_clock::now();
   double duration = std::chrono::duration<double>(end - begin).count();
+
+  printf("Rank \t %d \t %lf \t \n", upcxx::rank_me(), duration);
+
+  upcxx::barrier();
+  end = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration<double>(end - begin).count();
 
   if (upcxx::rank_me() == 0) {
     printf("Broadcast took %lf seconds.\n", duration);

@@ -49,18 +49,18 @@ struct broadcast_data {
   void wait_data(){
     while (check_ready() != true){
       get();
-      usleep(100);
+      usleep(10);
     }
   }
 
   void wait_issue(){
     while (get() != true)
-      usleep(100);
+      usleep(10);
   }
 
   void wait_put(){
     while (futures_done() != true)
-      usleep(100);
+      usleep(10);
   }
   
   bool check_ready() {
@@ -153,17 +153,17 @@ int main(int argc, char** argv) {
   bcast.wait_data();
   auto end = std::chrono::high_resolution_clock::now();
   double duration = std::chrono::duration<double>(end - begin).count();
-  printf("(1) took %lf seconds until data is available for rank %d.\n", duration, upcxx::rank_me());
+  printf("(1) \t rank \t %d \t took \t %lf \t seconds until data is available\n", upcxx::rank_me(), duration);
   
   bcast.wait_issue();
   end = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration<double>(end - begin).count();
-  printf("(2) took %lf seconds until all rputs issued for rank %d.\n", duration, upcxx::rank_me());
+  printf("(2) \t rank \t %d \t took \t %lf \t seconds until all rputs issued\n", upcxx::rank_me(), duration);
   
   bcast.wait_put();
   end = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration<double>(end - begin).count();
-  printf("(3) took %lf seconds until all work finished for rank %d.\n", duration, upcxx::rank_me());
+  printf("(3) \t rank \t %d \t took \t %lf \t seconds until all work finished\n", upcxx::rank_me(), duration);
   
 
   upcxx::barrier();
@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
   duration = std::chrono::duration<double>(end - begin).count();
 
   if (upcxx::rank_me() == 0) {
-    printf("(4) Broadcast took %lf seconds.\n", duration);
+    printf("(4) \t Broadcast took \t %lf \t seconds.\n", duration);
   }
 
   for (size_t i = 0; i < bcast_size; i++) {
