@@ -177,19 +177,21 @@ int main(int argc, char** argv) {
   double duration = std::chrono::duration<double>(end - begin).count();
   printf("(1) \t rank \t %d \t took \t %lf \t seconds until data is available\n", upcxx::rank_me(), duration);
 
+  if (kernel){
+    for(int i = 0; i < 500000; i += 10000){
+      bcast.get();
+      usleep(10000);
+    }
+  }
+  end = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration<double>(end - begin).count();
+  printf("(1.5) \t rank \t %d \t took \t %lf \t seconds until kernel done\n", upcxx::rank_me(), duration);
+  
   bcast.wait_issue();
   end = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration<double>(end - begin).count();
   printf("(2) \t rank \t %d \t took \t %lf \t seconds until all rputs issued\n", upcxx::rank_me(), duration);
   
-  if (kernel){
-    usleep(500000);
-
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration<double>(end - begin).count();
-    printf("Rank after kernel \t %d \t %lf \t \n", upcxx::rank_me(), duration);
-  }
-
   bcast.wait_put();
   end = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration<double>(end - begin).count();
