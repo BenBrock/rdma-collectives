@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cassert>
 #include <unistd.h>
+#include <thread> 
 
 #include <upcxx/upcxx.hpp>
 
@@ -176,22 +177,30 @@ int main(int argc, char** argv) {
   auto end = std::chrono::high_resolution_clock::now();
   double duration = std::chrono::duration<double>(end - begin).count();
   printf("(1) \t rank \t %d \t took \t %lf \t seconds until data is available\n", upcxx::rank_me(), duration);
-
+  
+  std::vector<std::thread> threads;
   if (kernel){
-    for(int i = 0; i < 500000; i += 10000){
+    int interval = 10000;
+    for(int i = 0; i < 500000; i += interval){
       bcast.get();
-      usleep(10000);
+      threads.push_back(std::thread(usleep, interval));
     }
   }
-  end = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(end - begin).count();
-  printf("(1.5) \t rank \t %d \t took \t %lf \t seconds until kernel done\n", upcxx::rank_me(), duration);
   
   bcast.wait_issue();
   end = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration<double>(end - begin).count();
   printf("(2) \t rank \t %d \t took \t %lf \t seconds until all rputs issued\n", upcxx::rank_me(), duration);
   
+  if (kernel){
+    for (auto& th : threads){
+      th.join();
+    }
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration<double>(end - begin).count();
+    printf("(2.5) \t rank \t %d \t took \t %lf \t seconds until kernel done\n", upcxx::rank_me(), duration);
+  }
+
   bcast.wait_put();
   end = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration<double>(end - begin).count();
