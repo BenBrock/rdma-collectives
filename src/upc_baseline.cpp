@@ -81,6 +81,8 @@ int main(int argc, char** argv) {
     for(int i = 0; i < data.size(); i ++){
         data[i] = 12;
     }
+
+    printf("=================UPC baseline==================\n");
   }
 
   upcxx::barrier();
@@ -90,25 +92,27 @@ int main(int argc, char** argv) {
 
   // upcxx::barrier();
   auto end = std::chrono::high_resolution_clock::now();
-  double duration = std::chrono::duration<double>(end - begin).count();
+  double duration_data = std::chrono::duration<double>(end - begin).count();
 
-  printf("Rank \t %d \t %lf \t \n", upcxx::rank_me(), duration);
+  // printf("Rank \t %d \t %lf \t \n", upcxx::rank_me(), duration);
   
-  if (kernel){
-    usleep(500000);
+  // if (kernel){
+  //   usleep(500000);
 
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration<double>(end - begin).count();
-    printf("Rank after kernel \t %d \t %lf \t \n", upcxx::rank_me(), duration);
-  }
+  //   end = std::chrono::high_resolution_clock::now();
+  //   duration = std::chrono::duration<double>(end - begin).count();
+  //   printf("Rank after kernel \t %d \t %lf \t \n", upcxx::rank_me(), duration);
+  // }
 
   upcxx::barrier();
   
   end = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(end - begin).count();
+  double duration = std::chrono::duration<double>(end - begin).count();
 
+  double total_duration_data = upcxx::reduce_one(duration_data, upcxx::op_fast_add, 0).wait();
   if (upcxx::rank_me() == 0) {
-    printf("Broadcast took %lf seconds.\n", duration);
+    printf("(1) \t Data received in \t %lf \t seconds in average.\n", total_duration_data / upcxx::rank_n());
+    printf("(2) Broadcast took %lf seconds.\n", duration);
   }
 
   for (size_t i = 0; i < bcast_size; i++) {

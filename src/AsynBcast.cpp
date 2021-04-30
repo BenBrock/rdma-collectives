@@ -150,11 +150,13 @@ bool find_int_arg(int argc, char** argv, const char* option, bool default_value)
 }
 
 int main(int argc, char** argv) {
-  
   bool kernel = find_int_arg(argc, argv, "-k", false);
 
   upcxx::init();
 
+  int rank_me = upcxx::rank_me();
+  int total_rank = upcxx::rank_n();
+  int root = 0;
   size_t bcast_size = 1000000;
 
   // Initialize a broadcast "data structure"
@@ -162,20 +164,23 @@ int main(int argc, char** argv) {
   
   broadcast_data<int> bcast(bcast_size);
 
+  if(rank_me == root){
+    printf("=================Asyn Bcast================\n");
+  }
   upcxx::barrier();
 
   
   auto begin = std::chrono::high_resolution_clock::now();
 
-  if (upcxx::rank_me() == 0) {
+  if (rank_me == root) {
     std::vector<int> data(bcast_size, 12);
     bcast.init_root(data);  
   }
   
   bcast.wait_data();
   auto end = std::chrono::high_resolution_clock::now();
-  double duration = std::chrono::duration<double>(end - begin).count();
-  printf("(1) \t rank \t %d \t took \t %lf \t seconds until data is available\n", upcxx::rank_me(), duration);
+  double duration_data = std::chrono::duration<double>(end - begin).count();
+  // printf("(1) \t rank \t %d \t took \t %lf \t seconds until data is available\n", upcxx::rank_me(), duration);
 
   if (kernel){
     for(int i = 0; i < 500000; i += 10000){
@@ -184,28 +189,38 @@ int main(int argc, char** argv) {
     }
   }
   end = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(end - begin).count();
-  printf("(1.5) \t rank \t %d \t took \t %lf \t seconds until kernel done\n", upcxx::rank_me(), duration);
+  double duration_kernel = std::chrono::duration<double>(end - begin).count();
+  // printf("(1.5) \t rank \t %d \t took \t %lf \t seconds until kernel done\n", upcxx::rank_me(), duration);
   
   bcast.wait_issue();
   end = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(end - begin).count();
-  printf("(2) \t rank \t %d \t took \t %lf \t seconds until all rputs issued\n", upcxx::rank_me(), duration);
+  double duration_issue = std::chrono::duration<double>(end - begin).count();
+  // printf("(2) \t rank \t %d \t took \t %lf \t seconds until all rputs issued\n", upcxx::rank_me(), duration);
   
   bcast.wait_put();
   end = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(end - begin).count();
-  printf("(3) \t rank \t %d \t took \t %lf \t seconds until all work finished\n", upcxx::rank_me(), duration);
+  double duration_put = std::chrono::duration<double>(end - begin).count();
+  // printf("(3) \t rank \t %d \t took \t %lf \t seconds until all work finished\n", upcxx::rank_me(), duration);
   
 
   upcxx::barrier();
   end = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(end - begin).count();
-
-  if (upcxx::rank_me() == 0) {
-    printf("(4) \t Broadcast took \t %lf \t seconds.\n", duration);
+  double duration = std::chrono::duration<double>(end - begin).count();
+  
+  double total_duration_data = upcxx::reduce_one(duration_data, upcxx::op_fast_add, 0).wait();
+  double total_duration_kernel = upcxx::reduce_one(duration_kernel, upcxx::op_fast_add, 0).wait();
+  double total_duration_issue = upcxx::reduce_one(duration_issue, upcxx::op_fast_add, 0).wait();
+  double total_duration_put = upcxx::reduce_one(duration_put, upcxx::op_fast_add, 0).wait();
+  
+  if (rank_me == root) {
+    printf("(1) \t Data received in \t %lf \t seconds in average.\n", total_duration_data / (double)total_rank);
+    printf("(2) \t Kernel done in \t %lf \t seconds in average.\n", total_duration_kernel / (double)total_rank);
+    printf("(3) \t All rputs issued in \t %lf \t seconds in average.\n", total_duration_issue / (double)total_rank);
+    printf("(4) \t All work finished in \t %lf \t seconds in average.\n", total_duration_put / (double)total_rank);
+    printf("(5) \t Broadcast took \t %lf \t seconds.\n", duration);
   }
 
+  
   for (size_t i = 0; i < bcast_size; i++) {
     assert(bcast.my_data()[i] == 12);
   }

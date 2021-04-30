@@ -24,14 +24,17 @@ int main(int argc, char** argv) {
   MPI_Bcast(data.data(), bcast_size, MPI_INT, 0, MPI_COMM_WORLD);
 
   auto end = std::chrono::high_resolution_clock::now();
-  double duration = std::chrono::duration<double>(end - begin).count();
-  printf("Rank \t %d: \t %lf \n", rank, duration);
+  double duration_data = std::chrono::duration<double>(end - begin).count();
+  // printf("Rank \t %d: \t %lf \n", rank, duration);
 
   MPI_Barrier(MPI_COMM_WORLD);
+  double total_duration_data = 0;
+  MPI_Reduce(&duration_data, &total_duration_data, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
   if (rank == 0) {
     end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration<double>(end - begin).count();
-    printf("Broadcast took \t %lf \t seconds.\n", duration);
+    double duration = std::chrono::duration<double>(end - begin).count();
+    printf("(1) \t Data received in \t %lf \t seconds in average.\n", total_duration_data / num_procs);
+    printf("(2) Broadcast took \t %lf \t seconds.\n", duration);
   }
   
   for (size_t i = 0; i < bcast_size; i++) {
