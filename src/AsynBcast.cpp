@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cassert>
 #include <unistd.h>
+#include <thread> 
 
 #include <upcxx/upcxx.hpp>
 
@@ -182,15 +183,10 @@ int main(int argc, char** argv) {
   double duration_data = std::chrono::duration<double>(end - begin).count();
   // printf("(1) \t rank \t %d \t took \t %lf \t seconds until data is available\n", upcxx::rank_me(), duration);
 
+  std::vector<std::thread> threads;
   if (kernel){
-    for(int i = 0; i < 500000; i += 10000){
-      bcast.get();
-      usleep(10000);
-    }
+    threads.push_back(std::thread(usleep, 500000));
   }
-  end = std::chrono::high_resolution_clock::now();
-  double duration_kernel = std::chrono::duration<double>(end - begin).count();
-  // printf("(1.5) \t rank \t %d \t took \t %lf \t seconds until kernel done\n", upcxx::rank_me(), duration);
   
   bcast.wait_issue();
   end = std::chrono::high_resolution_clock::now();
@@ -202,6 +198,20 @@ int main(int argc, char** argv) {
   double duration_put = std::chrono::duration<double>(end - begin).count();
   // printf("(3) \t rank \t %d \t took \t %lf \t seconds until all work finished\n", upcxx::rank_me(), duration);
   
+  /*
+  Thinking: User can actually determine the sequence of wait_put and kernel.join. 
+  If kernel is light, then kernel first and wait_put second would produce advantage.
+  If kernel is heavy, then kernel second and wait_put first would produce advantage.
+  */
+  double duration_kernel;
+  if (kernel){
+    for (auto& th : threads){
+      th.join();
+    }
+    end = std::chrono::high_resolution_clock::now();
+    duration_kernel = std::chrono::duration<double>(end - begin).count();
+    // printf("(3.5) \t rank \t %d \t took \t %lf \t seconds until kernel done\n", upcxx::rank_me(), duration);
+  }
 
   upcxx::barrier();
   end = std::chrono::high_resolution_clock::now();
@@ -214,10 +224,10 @@ int main(int argc, char** argv) {
   
   if (rank_me == root) {
     printf("(1) \t Data received in \t %lf \t seconds in average.\n", total_duration_data / (double)total_rank);
-    printf("(2) \t Kernel done in \t %lf \t seconds in average.\n", total_duration_kernel / (double)total_rank);
     printf("(3) \t All rputs issued in \t %lf \t seconds in average.\n", total_duration_issue / (double)total_rank);
     printf("(4) \t All work finished in \t %lf \t seconds in average.\n", total_duration_put / (double)total_rank);
-    printf("(5) \t Broadcast took \t %lf \t seconds.\n", duration);
+    printf("(5) \t Kernel done in \t %lf \t seconds in average.\n", total_duration_kernel / (double)total_rank);
+    printf("(6) \t Broadcast took \t %lf \t seconds.\n", duration);
   }
 
   

@@ -4,3 +4,4 @@ src/upc_baseline
 src/simple_put
 src/MST_put
 src/AsynBcast
+src/*.out

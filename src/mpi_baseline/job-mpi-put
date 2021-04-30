@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH -N 64
+#SBATCH -N 1
 #SBATCH -C knl
 #SBATCH -q debug
 #SBATCH -J mpitest
-#SBATCH --ntasks-per-node=2
-#SBATCH -t 00:10:00
+#SBATCH --ntasks-per-node=68
+#SBATCH -t 00:30:00
 
 #modules
 module load openmpi
