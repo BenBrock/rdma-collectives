@@ -180,11 +180,7 @@ int main(int argc, char** argv) {
   
   std::vector<std::thread> threads;
   if (kernel){
-    int interval = 10000;
-    for(int i = 0; i < 500000; i += interval){
-      bcast.get();
-      threads.push_back(std::thread(usleep, interval));
-    }
+    threads.push_back(std::thread(usleep, 500000));
   }
   
   bcast.wait_issue();
@@ -192,20 +188,24 @@ int main(int argc, char** argv) {
   duration = std::chrono::duration<double>(end - begin).count();
   printf("(2) \t rank \t %d \t took \t %lf \t seconds until all rputs issued\n", upcxx::rank_me(), duration);
   
+  bcast.wait_put();
+  end = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration<double>(end - begin).count();
+  printf("(3) \t rank \t %d \t took \t %lf \t seconds until all work finished\n", upcxx::rank_me(), duration);
+  
+  /*
+  Thinking: User can actually determine the sequence of wait_put and kernel.join. 
+  If kernel is light, then kernel first and wait_put second would produce advantage.
+  If kernel is heavy, then kernel second and wait_put first would produce advantage.
+  */
   if (kernel){
     for (auto& th : threads){
       th.join();
     }
     end = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration<double>(end - begin).count();
-    printf("(2.5) \t rank \t %d \t took \t %lf \t seconds until kernel done\n", upcxx::rank_me(), duration);
+    printf("(3.5) \t rank \t %d \t took \t %lf \t seconds until kernel done\n", upcxx::rank_me(), duration);
   }
-
-  bcast.wait_put();
-  end = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration<double>(end - begin).count();
-  printf("(3) \t rank \t %d \t took \t %lf \t seconds until all work finished\n", upcxx::rank_me(), duration);
-  
 
   upcxx::barrier();
   end = std::chrono::high_resolution_clock::now();
