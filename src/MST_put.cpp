@@ -110,13 +110,17 @@ int main(int argc, char** argv) {
   // Initialize a broadcast "data structure"
   // to support broadcasts up to `bcast_size` ints.
   
-  broadcast_data<int> bcast(bcast_size);
   if(upcxx::rank_me() == 0){
     printf("=================MST Bcast==================\n");
   }
-  upcxx::barrier();
+
   auto begin = std::chrono::high_resolution_clock::now();
+  broadcast_data<int> bcast(bcast_size);
+  upcxx::barrier();
   
+  auto end = std::chrono::high_resolution_clock::now();
+  double setup_data = std::chrono::duration<double>(end - begin).count();
+
   if (upcxx::rank_me() == 0) {
     std::vector<int> data(bcast_size, 12);
     bcast.init_root(data, 0);
@@ -128,7 +132,7 @@ int main(int argc, char** argv) {
     usleep(10);
   }
 
-  auto end = std::chrono::high_resolution_clock::now();
+  end = std::chrono::high_resolution_clock::now();
   double duration_data = std::chrono::duration<double>(end - begin).count();
 
   // printf("Rank \t %d \t %lf \t \n", upcxx::rank_me(), duration);
@@ -146,7 +150,9 @@ int main(int argc, char** argv) {
   double duration = std::chrono::duration<double>(end - begin).count();
   
   double total_duration_data = upcxx::reduce_one(duration_data, upcxx::op_fast_add, 0).wait();
+  double total_setup_data = upcxx::reduce_one(setup_data, upcxx::op_fast_add, 0).wait();
   if (upcxx::rank_me() == 0) {
+    printf("(0) \t Setup in \t %lf \t seconds in average.\n", total_setup_data / upcxx::rank_n());
     printf("(1) \t Data received in \t %lf \t seconds in average.\n", total_duration_data / upcxx::rank_n());
     printf("(2) Broadcast took %lf seconds.\n", duration);
   }

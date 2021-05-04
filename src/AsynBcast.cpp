@@ -163,15 +163,18 @@ int main(int argc, char** argv) {
   // Initialize a broadcast "data structure"
   // to support broadcasts up to `bcast_size` ints.
   
-  broadcast_data<int> bcast(bcast_size);
-
   if(rank_me == root){
     printf("=================Asyn Bcast================\n");
   }
+
+  auto begin = std::chrono::high_resolution_clock::now();
+  
+  broadcast_data<int> bcast(bcast_size);
   upcxx::barrier();
 
   
-  auto begin = std::chrono::high_resolution_clock::now();
+  auto end = std::chrono::high_resolution_clock::now();
+  double setup_data = std::chrono::duration<double>(end - begin).count();
 
   if (rank_me == root) {
     std::vector<int> data(bcast_size, 12);
@@ -179,7 +182,7 @@ int main(int argc, char** argv) {
   }
   
   bcast.wait_data();
-  auto end = std::chrono::high_resolution_clock::now();
+  end = std::chrono::high_resolution_clock::now();
   double duration_data = std::chrono::duration<double>(end - begin).count();
   // printf("(1) \t rank \t %d \t took \t %lf \t seconds until data is available\n", upcxx::rank_me(), duration);
 
@@ -217,12 +220,14 @@ int main(int argc, char** argv) {
   end = std::chrono::high_resolution_clock::now();
   double duration = std::chrono::duration<double>(end - begin).count();
   
+  double total_setup_data = upcxx::reduce_one(setup_data, upcxx::op_fast_add, 0).wait();
   double total_duration_data = upcxx::reduce_one(duration_data, upcxx::op_fast_add, 0).wait();
   double total_duration_kernel = upcxx::reduce_one(duration_kernel, upcxx::op_fast_add, 0).wait();
   double total_duration_issue = upcxx::reduce_one(duration_issue, upcxx::op_fast_add, 0).wait();
   double total_duration_put = upcxx::reduce_one(duration_put, upcxx::op_fast_add, 0).wait();
   
   if (rank_me == root) {
+    printf("(0) \t Setup in \t %lf \t seconds in average.\n", total_setup_data / upcxx::rank_n());
     printf("(1) \t Data received in \t %lf \t seconds in average.\n", total_duration_data / (double)total_rank);
     printf("(3) \t All rputs issued in \t %lf \t seconds in average.\n", total_duration_issue / (double)total_rank);
     printf("(4) \t All work finished in \t %lf \t seconds in average.\n", total_duration_put / (double)total_rank);

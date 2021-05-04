@@ -9,7 +9,7 @@ TARGETS := $(patsubst %.cpp, %, $(SOURCES))
 all: $(TARGETS)
 
 %: %.cpp
-	$(CXX) -o $@ -g $^
+	$(CXX) -O3 -o $@ -g $^
 
 clean:
 	rm -fv $(TARGETS)
