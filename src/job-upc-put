@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -N 1
+#SBATCH -N 64
 #SBATCH -C knl
 #SBATCH -q debug
 #SBATCH -J cs267-hw3-starter
@@ -11,4 +11,6 @@ export OMP_PLACES=threads
 export OMP_PROC_BIND=spread
 
 #run the application:
-srun -n 2 -c 4 --cpu_bind=cores ./AsynBcast -k
+srun -n 128 -c 4 --cpu_bind=cores ./AsynBcast
+srun -n 128 -c 4 --cpu_bind=cores ./MPI_put
+srun -n 128 -c 4 --cpu_bind=cores ./upc_baseline
