@@ -50,18 +50,17 @@ struct broadcast_data {
   void wait_data(){
     while (check_ready() != true){
       get();
-      usleep(10);
     }
   }
 
   void wait_issue(){
-    while (get() != true)
-      usleep(10);
+    while (get() != true){
+    }
   }
 
   void wait_put(){
-    while (futures_done() != true)
-      usleep(10);
+    while (futures_done() != true){
+    }
   }
   
   bool check_ready() {
