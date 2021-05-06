@@ -11,6 +11,6 @@ export OMP_PLACES=threads
 export OMP_PROC_BIND=spread
 
 #run the application:
-srun -n 128 -c 4 --cpu_bind=cores ./AsynBcast
+srun -n 128 -c 4 --cpu_bind=cores ./AsynDataBcast
 srun -n 128 -c 4 --cpu_bind=cores ./MST_put
-srun -n 128 -c 4 --cpu_bind=cores ./upc_baseline
+# srun -n 128 -c 4 --cpu_bind=cores ./upc_baseline
